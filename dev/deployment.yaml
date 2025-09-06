@@ -81,7 +81,7 @@ spec:
             - name: POSTGRES_USER
               value: zulip
             - name: POSTGRES_PASSWORD
-              value: "Vindod_1234"
+              value: "Vinod_1234"
           volumeMounts:
             - name: postgresql-persistent-storage
               mountPath: /var/lib/postgresql/data
