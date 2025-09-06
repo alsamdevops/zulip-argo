@@ -1,0 +1,159 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: zulip
+  labels:
+    app: zulip
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: zulip
+      version: 1.8.1-0
+  template:
+    metadata:
+      labels:
+        app: zulip
+        version: 1.8.1-0
+    spec:
+      containers:
+        - name: redis
+          image: redis:alpine
+          command:
+            - "sh"
+            - "-euc"
+            - |
+              echo "requirepass '$$REDIS_PASSWORD'" > /etc/redis.conf
+              exec redis-server /etc/redis.conf
+          env:
+            - name: REDIS_PASSWORD
+              value: "Vinod_1234"
+          resources:
+            limits:
+              cpu: 50m
+          volumeMounts:
+            - name: redis-persistent-storage
+              mountPath: /var/lib/redis
+        - name: memcached
+          image: memcached:alpine
+          command:
+            - "sh"
+            - "-euc"
+            - |
+              echo 'mech_list: plain' > "$$SASL_CONF_PATH"
+              echo "zulip@$$HOSTNAME:$$MEMCACHED_PASSWORD" > "$$MEMCACHED_SASL_PWDB"
+              echo "zulip@localhost:$$MEMCACHED_PASSWORD" >> "$$MEMCACHED_SASL_PWDB"
+              exec memcached -S
+          env:
+            - name: SASL_CONF_PATH
+              value: "/home/memcache/memcached.conf"
+            - name: MEMCACHED_SASL_PWDB
+              value: "/home/memcache/memcached-sasl-db"
+            - name: MEMCACHED_PASSWORD
+              value: "Vinod_1234"
+          resources:
+            limits:
+              cpu: 75m
+              memory: 768Mi
+        - name: rabbitmq
+          image: rabbitmq:4.0.7
+          resources:
+            limits:
+              cpu: 75m
+              memory: 768Mi
+          env:
+            - name: RABBITMQ_DEFAULT_USER
+              value: "zulip"
+            - name: RABBITMQ_DEFAULT_PASS
+              value: "Vinod_1234"
+          volumeMounts:
+            - name: rabbitmq-persistent-storage
+              mountPath: /var/lib/rabbitmq
+        - name: postgresql
+          image: zulip/zulip-postgresql
+          resources:
+            limits:
+              cpu: 80m
+              memory: 768Mi
+          env:
+            - name: POSTGRES_DB
+              value: zulip
+            - name: POSTGRES_USER
+              value: zulip
+            - name: POSTGRES_PASSWORD
+              value: REPLACE_WITH_SECURE_POSTGRES_PASSWORD
+          volumeMounts:
+            - name: postgresql-persistent-storage
+              mountPath: /var/lib/postgresql/data
+        - name: zulip
+          image: zulip/docker-zulip:11.0-0
+          resources:
+            limits:
+              cpu: 100m
+              memory: 3584Mi
+          env:
+            - name: DB_HOST
+              value: "localhost"
+            - name: MEMCACHED_HOST
+              value: "localhost"
+            - name: REDIS_HOST
+              value: "localhost"
+            - name: RABBITMQ_HOST
+              value: "localhost"
+            - name: ZULIP_AUTH_BACKENDS
+              value: "EmailAuthBackend"
+            - name: SECRETS_email_password
+              value: "123456789"
+            - name: SETTING_EXTERNAL_HOST
+              value: "localhost"
+            - name: SETTING_ZULIP_ADMINISTRATOR
+              value: "admin@example.com"
+            - name: SETTING_EMAIL_HOST
+              value: ""
+            - name: SETTING_EMAIL_HOST_USER
+              value: "noreply@example.com"
+            - name: ZULIP_USER_EMAIL
+              value: "example@example.com"
+            - name: ZULIP_USER_DOMAIN
+              value: "example.com"
+            - name: ZULIP_USER_PASS
+              value: "123456789"
+            - name: SECRETS_secret_key
+              value: "vinod_12345678901024521523654125125417895125412541"
+            - name: SECRETS_postgres_password
+              value: "Vinod_1234"
+            - name: SECRETS_memcached_password
+              value: "Vinod_1234"
+            - name: SECRETS_rabbitmq_password
+              value: "Vinod_1234"
+            - name: SECRETS_redis_password
+              value: "Vinod_1234"
+            - name: SSL_CERTIFICATE_GENERATION
+              value: "self-signed"
+          ports:
+            - containerPort: 25
+              name: smtp
+              protocol: TCP
+            - containerPort: 80
+              name: http
+              protocol: TCP
+            - containerPort: 443
+              name: https
+              protocol: TCP
+          volumeMounts:
+            - name: zulip-persistent-storage
+              mountPath: /data
+      volumes:
+        - name: redis-persistent-storage
+          hostPath:
+            path: /opt/docker/zulip/redis
+        - name: rabbitmq-persistent-storage
+          hostPath:
+            path: /opt/docker/zulip/rabbitmq
+        - name: postgresql-persistent-storage
+          hostPath:
+            path: /opt/docker/zulip/postgresql
+        - name: zulip-persistent-storage
+          hostPath:
+            path: /opt/docker/zulip/zulip
+
