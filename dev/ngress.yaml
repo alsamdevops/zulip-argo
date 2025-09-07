@@ -1,10 +1,48 @@
+#########################
+# 1) Service for ingress controller - exposes ports 80/443
+#    and advertises the two node IPs via externalIPs
+#    (namespace: ingress-nginx)
+#########################
+apiVersion: v1
+kind: Service
+metadata:
+  name: ingress-nginx-loadbalancer
+  namespace: ingress-nginx
+  labels:
+    app: ingress-nginx-loadbalancer
+spec:
+  type: ClusterIP   # keep ClusterIP + externalIPs; change to LoadBalancer if using MetalLB
+  externalIPs:
+    - 192.168.137.10
+    - 192.168.137.11
+  selector:
+    # selector must match your ingress controller pod labels.
+    # Standard ingress-nginx uses these labels; adjust if your controller uses different labels.
+    app.kubernetes.io/name: ingress-nginx
+    app.kubernetes.io/component: controller
+  ports:
+    - name: http
+      port: 80
+      targetPort: 80
+    - name: https
+      port: 443
+      targetPort: 443
+---
+#########################
+# 2) Ingress resource in the zulip namespace
+#    - routes host localhost.shaik.info -> service zulip (port 80)
+#    - TLS configured via 'zulip-tls-secret' in namespace zulip
+#########################
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: zulip-ingress
+  namespace: zulip
   annotations:
+    kubernetes.io/ingress.class: "nginx"   # use spec.ingressClassName on newer clusters if preferred
     nginx.ingress.kubernetes.io/proxy-body-size: "50m"
 spec:
+  ingressClassName: "nginx"
   rules:
     - host: localhost.shaik.info
       http:
@@ -13,10 +51,10 @@ spec:
             pathType: Prefix
             backend:
               service:
-                name: zulip-nodeport
+                name: zulip
                 port:
                   number: 80
   tls:
     - hosts:
         - localhost.shaik.info
-      secretName: zulip-tls-secret  # create this if you have certs
+      secretName: zulip-tls-secret
