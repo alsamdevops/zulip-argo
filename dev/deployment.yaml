@@ -105,7 +105,7 @@ spec:
             - name: SECRETS_email_password
               value: "123456789"
             - name: SETTING_EXTERNAL_HOST
-              value: "192.168.137.10:30443,192.168.137.10:30080,192.168.137.11:30443,192.168.137.11:30080"
+              value: "localhost.shaik.info"
             - name: SETTING_ZULIP_ADMINISTRATOR
               value: "admin@example.com"
             - name: SETTING_EMAIL_HOST
