@@ -1,8 +1,23 @@
-#########################
-# 1) Service for ingress controller - exposes ports 80/443
-#    and advertises the two node IPs via externalIPs
-#    (namespace: ingress-nginx)
-#########################
+# ----------------------------
+# Namespace: ingress-nginx
+# ----------------------------
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: ingress-nginx
+---
+# ----------------------------
+# Namespace: zulip
+# ----------------------------
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: zulip
+---
+# ----------------------------
+# Service: expose ingress controller on 80/443 via externalIPs
+# (adjust selector labels to match your ingress controller pods if needed)
+# ----------------------------
 apiVersion: v1
 kind: Service
 metadata:
@@ -11,13 +26,14 @@ metadata:
   labels:
     app: ingress-nginx-loadbalancer
 spec:
-  type: ClusterIP   # keep ClusterIP + externalIPs; change to LoadBalancer if using MetalLB
+  type: ClusterIP
+  # advertise both node IPs on the network. Clients can connect to either IP.
   externalIPs:
     - 192.168.137.10
     - 192.168.137.11
   selector:
-    # selector must match your ingress controller pod labels.
-    # Standard ingress-nginx uses these labels; adjust if your controller uses different labels.
+    # Ensure these labels match your ingress-nginx controller pod labels.
+    # If your controller uses different labels, update these to match.
     app.kubernetes.io/name: ingress-nginx
     app.kubernetes.io/component: controller
   ports:
@@ -28,18 +44,16 @@ spec:
       port: 443
       targetPort: 443
 ---
-#########################
-# 2) Ingress resource in the zulip namespace
-#    - routes host localhost.shaik.info -> service zulip (port 80)
-#    - TLS configured via 'zulip-tls-secret' in namespace zulip
-#########################
+# ----------------------------
+# Ingress: route host -> zulip service; enable TLS via zulip-tls-secret
+# ----------------------------
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
   name: zulip-ingress
   namespace: zulip
   annotations:
-    kubernetes.io/ingress.class: "nginx"   # use spec.ingressClassName on newer clusters if preferred
+    kubernetes.io/ingress.class: "nginx"
     nginx.ingress.kubernetes.io/proxy-body-size: "50m"
 spec:
   ingressClassName: "nginx"
