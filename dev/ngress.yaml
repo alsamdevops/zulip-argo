@@ -1,0 +1,22 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: zulip-ingress
+  annotations:
+    nginx.ingress.kubernetes.io/proxy-body-size: "50m"
+spec:
+  rules:
+    - host: localhost.shaik.info
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: zulip-nodeport
+                port:
+                  number: 80
+  tls:
+    - hosts:
+        - localhost.shaik.info
+      secretName: zulip-tls-secret  # create this if you have certs
